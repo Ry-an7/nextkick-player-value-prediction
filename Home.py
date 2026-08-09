@@ -264,119 +264,6 @@ with tab1:
             display_df,
             use_container_width=True
         )
-# with tab1:
-#     st.subheader("Potentially Undervalued Players")
-#     st.write(
-#     """
-#         These players have a higher predicted market value than their current market value.
-#         Use the filters below to explore potential opportunities by position and number of players.
-#     """
-#     )
-
-#     features = [
-#         "age",
-#         "position",
-#         "minutes_played",
-#         "goals",
-#         "assists",
-#         "offensive_contribution",
-#         "creativity_score",
-#         "successful_passes",
-#         "defensive_actions",
-#         "save_percentage",
-#         "player_rating"
-#     ]
-
-#     X_players = df[features].copy()
-
-#     X_players = pd.get_dummies(
-#         X_players,
-#         columns=["position"],
-#         drop_first=True
-#     )
-
-#     for col in model.feature_names_in_:
-#         if col not in X_players.columns:
-#             X_players[col] = 0
-
-#     X_players = X_players[
-#         model.feature_names_in_
-#     ]
-
-#     predictions = model.predict(X_players)
-#     results = df.copy()
-
-#     results["predicted_market_value"] = (
-#         np.exp(predictions)
-#     )
-
-#     results["value_difference"] = (
-#         results["predicted_market_value"]
-#         -
-#         results["market_value_eur"]
-#     )
-
-#     undervalued_players = results[
-#         results["value_difference"] > 0
-#     ]
-
-#     undervalued_players = undervalued_players.sort_values(
-#         "value_difference",
-#         ascending=False
-#     )
-
-#     selected_position = st.selectbox(
-#         "Filter by Position",
-#         ["All"] + sorted(df["position"].unique()),
-#         key="position_filter"
-#     )
-
-#     if selected_position != "All":
-#         undervalued_players = undervalued_players[
-#             undervalued_players["position"] == selected_position
-#         ]
-
-#     top_n = st.slider(
-#     "Number of players to display",
-#     min_value=5,
-#     max_value=100,
-#     value=20
-#     )
-
-#     display_df = undervalued_players[
-#     [
-#         "player_name",
-#         "position",
-#         "market_value_eur",
-#         "predicted_market_value",
-#         "value_difference"
-#     ]
-#     ].head(top_n).copy()
-
-
-#     for col in [
-#         "market_value_eur",
-#         "predicted_market_value",
-#         "value_difference"
-#     ]:
-#         display_df[col] = (
-#             display_df[col] / 1_000_000
-#         ).round(2)
-
-#     display_df = display_df.rename(
-#         columns={
-#             "market_value_eur": "Current Value (€M)",
-#             "predicted_market_value": "Predicted Value (€M)",
-#             "value_difference": "Value Gap (€M)"
-#         }
-#     )
-
-#     st.write("")
-#     chart_data = display_df.set_index("player_name")["Value Gap (€M)"].sort_values()
-#     st.bar_chart(chart_data, horizontal=True)
-#     st.caption("Players are ranked by estimated value gap. A larger bar indicates a greater difference between estimated and current market value.")
-
-#     st.dataframe(display_df)
 
 
 # Player Value Estimator
@@ -394,30 +281,35 @@ with tab2:
         "Position",
         sorted(df["position"].unique())
     )
+
     age = st.slider(
         "Age",
         int(df["age"].min()),
         int(df["age"].max()),
         int(df["age"].median())
     )
+
     offensive_contribution = st.slider(
         "Offensive Contribution",
         float(df["offensive_contribution"].min()),
         float(df["offensive_contribution"].max()),
         float(df["offensive_contribution"].median())
     )
+
     creativity_score = st.slider(
         "Creativity Score",
         float(df["creativity_score"].min()),
         float(df["creativity_score"].max()),
         float(df["creativity_score"].median())
     )
+
     successful_passes = st.slider(
         "Successful Passes",
         int(df["successful_passes"].min()),
         int(df["successful_passes"].max()),
         int(df["successful_passes"].median())
     )
+
     player_rating = st.slider(
         "Player Rating",
         float(df["player_rating"].min()),
@@ -425,9 +317,20 @@ with tab2:
         float(df["player_rating"].median())
     )
 
-    # Advanced Statistics
+    # Show Save Percentage only for goalkeepers
     default_save_percentage = float(df["save_percentage"].median())
 
+    if position == "Goalkeeper":
+        save_percentage = st.slider(
+            "Save Percentage",
+            float(df["save_percentage"].min()),
+            float(df["save_percentage"].max()),
+            default_save_percentage
+        )
+    else:
+        save_percentage = default_save_percentage
+
+    # Advanced Statistics
     with st.expander("Advanced Player Statistics"):
         minutes_played = st.slider(
             "Minutes Played",
@@ -435,35 +338,27 @@ with tab2:
             int(df["minutes_played"].max()),
             int(df["minutes_played"].median())
         )
+
         goals = st.slider(
             "Goals",
             int(df["goals"].min()),
             int(df["goals"].max()),
             int(df["goals"].median())
         )
+
         assists = st.slider(
             "Assists",
             int(df["assists"].min()),
             int(df["assists"].max()),
             int(df["assists"].median())
         )
+
         defensive_actions = st.slider(
             "Defensive Actions",
             int(df["defensive_actions"].min()),
             int(df["defensive_actions"].max()),
             int(df["defensive_actions"].median())
         )
-        save_percentage = st.slider(
-            "Save Percentage",
-            float(df["save_percentage"].min()),
-            float(df["save_percentage"].max()),
-            default_save_percentage
-        )
-        if position != "Goalkeeper" and save_percentage != default_save_percentage:
-            st.warning(
-                "Save Percentage only affects goalkeepers. "
-                "This value will not affect any other predictions."
-            )
 
     # Prediction
     if st.button("Estimate Market Value"):
@@ -478,11 +373,12 @@ with tab2:
             "creativity_score": creativity_score,
             "successful_passes": successful_passes,
             "defensive_actions": defensive_actions,
-            "save_percentage": (save_percentage if position == "Goalkeeper" else default_save_percentage),
+            "save_percentage": save_percentage,
             "player_rating": player_rating
         }
 
         input_df = pd.DataFrame([input_data])
+
         input_df = pd.get_dummies(
             input_df,
             columns=["position"],
@@ -499,11 +395,142 @@ with tab2:
 
         prediction = model.predict(input_df)[0]
         predicted_value = np.exp(prediction)
-        st.success(f"Estimated Market Value: €{predicted_value:,.0f}")
 
-st.divider()
-st.caption(
-    """
-    Disclaimer: Model predictions are estimates based on the provided dataset and selected player characteristics. The tool is intended to support player evaluation and should not replace expert judgement or current market analysis.
-    """
-)
+        st.success(
+            f"Estimated Market Value: €{predicted_value:,.0f}"
+        )
+
+    st.divider()
+
+    st.caption(
+        """
+        Disclaimer: Model predictions are estimates based on the provided dataset and selected player characteristics. The tool is intended to support player evaluation and should not replace expert judgement or current market analysis.
+        """
+    )
+# with tab2:
+#     st.subheader("Estimate Player Market Value")
+#     st.write(
+#         """
+#         Adjust key player characteristics to estimate market value.
+#         Additional statistics can be adjusted in the advanced options.
+#         """
+#     )
+
+#     # Main Statistics
+#     position = st.selectbox(
+#         "Position",
+#         sorted(df["position"].unique())
+#     )
+#     age = st.slider(
+#         "Age",
+#         int(df["age"].min()),
+#         int(df["age"].max()),
+#         int(df["age"].median())
+#     )
+#     offensive_contribution = st.slider(
+#         "Offensive Contribution",
+#         float(df["offensive_contribution"].min()),
+#         float(df["offensive_contribution"].max()),
+#         float(df["offensive_contribution"].median())
+#     )
+#     creativity_score = st.slider(
+#         "Creativity Score",
+#         float(df["creativity_score"].min()),
+#         float(df["creativity_score"].max()),
+#         float(df["creativity_score"].median())
+#     )
+#     successful_passes = st.slider(
+#         "Successful Passes",
+#         int(df["successful_passes"].min()),
+#         int(df["successful_passes"].max()),
+#         int(df["successful_passes"].median())
+#     )
+#     player_rating = st.slider(
+#         "Player Rating",
+#         float(df["player_rating"].min()),
+#         float(df["player_rating"].max()),
+#         float(df["player_rating"].median())
+#     )
+
+#     # Advanced Statistics
+#     default_save_percentage = float(df["save_percentage"].median())
+
+#     with st.expander("Advanced Player Statistics"):
+#         minutes_played = st.slider(
+#             "Minutes Played",
+#             int(df["minutes_played"].min()),
+#             int(df["minutes_played"].max()),
+#             int(df["minutes_played"].median())
+#         )
+#         goals = st.slider(
+#             "Goals",
+#             int(df["goals"].min()),
+#             int(df["goals"].max()),
+#             int(df["goals"].median())
+#         )
+#         assists = st.slider(
+#             "Assists",
+#             int(df["assists"].min()),
+#             int(df["assists"].max()),
+#             int(df["assists"].median())
+#         )
+#         defensive_actions = st.slider(
+#             "Defensive Actions",
+#             int(df["defensive_actions"].min()),
+#             int(df["defensive_actions"].max()),
+#             int(df["defensive_actions"].median())
+#         )
+#         save_percentage = st.slider(
+#             "Save Percentage",
+#             float(df["save_percentage"].min()),
+#             float(df["save_percentage"].max()),
+#             default_save_percentage
+#         )
+#         if position != "Goalkeeper" and save_percentage != default_save_percentage:
+#             st.warning(
+#                 "Save Percentage only affects goalkeepers. "
+#                 "This value will not affect any other predictions."
+#             )
+
+#     # Prediction
+#     if st.button("Estimate Market Value"):
+
+#         input_data = {
+#             "age": age,
+#             "position": position,
+#             "minutes_played": minutes_played,
+#             "goals": goals,
+#             "assists": assists,
+#             "offensive_contribution": offensive_contribution,
+#             "creativity_score": creativity_score,
+#             "successful_passes": successful_passes,
+#             "defensive_actions": defensive_actions,
+#             "save_percentage": (save_percentage if position == "Goalkeeper" else default_save_percentage),
+#             "player_rating": player_rating
+#         }
+
+#         input_df = pd.DataFrame([input_data])
+#         input_df = pd.get_dummies(
+#             input_df,
+#             columns=["position"],
+#             drop_first=True
+#         )
+
+#         for col in model.feature_names_in_:
+#             if col not in input_df.columns:
+#                 input_df[col] = 0
+
+#         input_df = input_df[
+#             model.feature_names_in_
+#         ]
+
+#         prediction = model.predict(input_df)[0]
+#         predicted_value = np.exp(prediction)
+#         st.success(f"Estimated Market Value: €{predicted_value:,.0f}")
+
+# st.divider()
+# st.caption(
+#     """
+#     Disclaimer: Model predictions are estimates based on the provided dataset and selected player characteristics. The tool is intended to support player evaluation and should not replace expert judgement or current market analysis.
+#     """
+# )
