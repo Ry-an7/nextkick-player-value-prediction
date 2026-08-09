@@ -1,2 +1,2 @@
-# nextkick-player-value-prediction
-IAT461 - Machine learning project for predicting football player market values and identifying potentially undervalued players.
+# NextKick Player Value Prediction
+IAT461 Final Project: Machine learning project for predicting football player market values and identifying potentially undervalued players.
