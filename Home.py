@@ -127,12 +127,13 @@ tab1, tab2 = st.tabs(
 with tab1:
     st.subheader("Potentially Undervalued Players")
     st.write(
-    """
-    These players are ranked by the estimated value gap between their predicted market value and current market value. Larger gaps indicate players where the model estimates a higher value than their current market value.
-    Use the filters below to explore results by position and adjust the number of players displayed.
-    """
+        """
+        These players have a higher predicted market value than their current market value.
+        Use the filters below to explore potential opportunities by position and number of players.
+        """
     )
 
+    # Prepare player data for predictions
     features = [
         "age",
         "position",
@@ -163,57 +164,60 @@ with tab1:
         model.feature_names_in_
     ]
 
+    # Generate predictions
     predictions = model.predict(X_players)
+
     results = df.copy()
 
-    results["predicted_market_value"] = (
-        np.exp(predictions)
-    )
+    results["predicted_market_value"] = np.exp(predictions)
 
     results["value_difference"] = (
         results["predicted_market_value"]
-        -
-        results["market_value_eur"]
+        - results["market_value_eur"]
     )
 
+    # Keep only potentially undervalued players
     undervalued_players = results[
         results["value_difference"] > 0
-    ]
-
-    undervalued_players = undervalued_players.sort_values(
+    ].sort_values(
         "value_difference",
         ascending=False
     )
 
+    # Filters
     selected_position = st.selectbox(
         "Filter by Position",
         ["All"] + sorted(df["position"].unique()),
         key="position_filter"
     )
 
-    if selected_position != "All":
-        undervalued_players = undervalued_players[
-            undervalued_players["position"] == selected_position
-        ]
-
     top_n = st.slider(
-    "Number of players to display",
-    min_value=5,
-    max_value=100,
-    value=20
+        "Number of players to display",
+        min_value=5,
+        max_value=100,
+        value=20
     )
 
-    display_df = undervalued_players[
-    [
-        "player_name",
-        "position",
-        "market_value_eur",
-        "predicted_market_value",
-        "value_difference"
-    ]
+    # Apply position filter
+    filtered_players = undervalued_players.copy()
+
+    if selected_position != "All":
+        filtered_players = filtered_players[
+            filtered_players["position"] == selected_position
+        ]
+
+    # Select columns and number of players
+    display_df = filtered_players[
+        [
+            "player_name",
+            "position",
+            "market_value_eur",
+            "predicted_market_value",
+            "value_difference"
+        ]
     ].head(top_n).copy()
 
-
+    # Convert values to millions
     for col in [
         "market_value_eur",
         "predicted_market_value",
@@ -223,6 +227,7 @@ with tab1:
             display_df[col] / 1_000_000
         ).round(2)
 
+    # Rename columns
     display_df = display_df.rename(
         columns={
             "market_value_eur": "Current Value (€M)",
@@ -231,12 +236,147 @@ with tab1:
         }
     )
 
-    st.write("")
-    chart_data = display_df.set_index("player_name")["Value Gap (€M)"].sort_values()
-    st.bar_chart(chart_data, horizontal=True)
-    st.caption("Players are ranked by estimated value gap. A larger bar indicates a greater difference between estimated and current market value.")
+    # Chart and table tabs
+    chart_tab, table_tab = st.tabs(
+        ["Value Gap Chart", "Player Details"]
+    )
 
-    st.dataframe(display_df)
+    with chart_tab:
+        chart_data = (
+            display_df
+            .set_index("player_name")["Value Gap (€M)"]
+            .sort_values()
+        )
+
+        st.bar_chart(
+            chart_data,
+            horizontal=True
+        )
+
+        st.caption(
+            "Players are ranked by estimated value gap. "
+            "A larger bar indicates a greater difference between estimated "
+            "and current market value."
+        )
+
+    with table_tab:
+        st.dataframe(
+            display_df,
+            use_container_width=True
+        )
+# with tab1:
+#     st.subheader("Potentially Undervalued Players")
+#     st.write(
+#     """
+#         These players have a higher predicted market value than their current market value.
+#         Use the filters below to explore potential opportunities by position and number of players.
+#     """
+#     )
+
+#     features = [
+#         "age",
+#         "position",
+#         "minutes_played",
+#         "goals",
+#         "assists",
+#         "offensive_contribution",
+#         "creativity_score",
+#         "successful_passes",
+#         "defensive_actions",
+#         "save_percentage",
+#         "player_rating"
+#     ]
+
+#     X_players = df[features].copy()
+
+#     X_players = pd.get_dummies(
+#         X_players,
+#         columns=["position"],
+#         drop_first=True
+#     )
+
+#     for col in model.feature_names_in_:
+#         if col not in X_players.columns:
+#             X_players[col] = 0
+
+#     X_players = X_players[
+#         model.feature_names_in_
+#     ]
+
+#     predictions = model.predict(X_players)
+#     results = df.copy()
+
+#     results["predicted_market_value"] = (
+#         np.exp(predictions)
+#     )
+
+#     results["value_difference"] = (
+#         results["predicted_market_value"]
+#         -
+#         results["market_value_eur"]
+#     )
+
+#     undervalued_players = results[
+#         results["value_difference"] > 0
+#     ]
+
+#     undervalued_players = undervalued_players.sort_values(
+#         "value_difference",
+#         ascending=False
+#     )
+
+#     selected_position = st.selectbox(
+#         "Filter by Position",
+#         ["All"] + sorted(df["position"].unique()),
+#         key="position_filter"
+#     )
+
+#     if selected_position != "All":
+#         undervalued_players = undervalued_players[
+#             undervalued_players["position"] == selected_position
+#         ]
+
+#     top_n = st.slider(
+#     "Number of players to display",
+#     min_value=5,
+#     max_value=100,
+#     value=20
+#     )
+
+#     display_df = undervalued_players[
+#     [
+#         "player_name",
+#         "position",
+#         "market_value_eur",
+#         "predicted_market_value",
+#         "value_difference"
+#     ]
+#     ].head(top_n).copy()
+
+
+#     for col in [
+#         "market_value_eur",
+#         "predicted_market_value",
+#         "value_difference"
+#     ]:
+#         display_df[col] = (
+#             display_df[col] / 1_000_000
+#         ).round(2)
+
+#     display_df = display_df.rename(
+#         columns={
+#             "market_value_eur": "Current Value (€M)",
+#             "predicted_market_value": "Predicted Value (€M)",
+#             "value_difference": "Value Gap (€M)"
+#         }
+#     )
+
+#     st.write("")
+#     chart_data = display_df.set_index("player_name")["Value Gap (€M)"].sort_values()
+#     st.bar_chart(chart_data, horizontal=True)
+#     st.caption("Players are ranked by estimated value gap. A larger bar indicates a greater difference between estimated and current market value.")
+
+#     st.dataframe(display_df)
 
 
 # Player Value Estimator
