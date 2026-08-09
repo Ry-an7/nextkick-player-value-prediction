@@ -5,8 +5,16 @@ import joblib
 
 st.set_page_config(page_title="Football Player Market Value Analysis", layout="wide")
 
-model = joblib.load("market_value_model.pkl")
-df = pd.read_csv("players_model_data.csv")
+@st.cache_resource
+def load_model():
+    return joblib.load("market_value_model.pkl")
+
+@st.cache_data
+def load_data():
+    return pd.read_csv("players_model_data.csv")
+
+model = load_model()
+df = load_data()
 
 # Overview
 st.title("Football Player Market Value Insights")
@@ -28,7 +36,7 @@ st.write(
 st.write("")
 st.write("")
 
-st.header("Key Findings")
+st.header("Project Summary")
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("Players Analyzed", "1,248")
 col2.metric("Model Used", "Gradient Boosting")
@@ -47,27 +55,40 @@ st.write(
 st.write("")
 st.write("")
 
+st.subheader("What Matters Most to the Model")
+st.write(
+    "These are the statistics that influence the model's value estimate the most."
+)
+
+importance_df = pd.DataFrame({
+    "feature": model.feature_names_in_,
+    "importance": model.feature_importances_
+}).sort_values("importance", ascending=False).head(10)
+
+importance_df["feature"] = importance_df["feature"].str.replace("_", " ").str.title()
+
+st.bar_chart(importance_df.set_index("feature"))
+st.write("")
+st.write("")
+
 st.header("Key Findings")
 st.markdown(
     """
     ### Model Performance
 
-    The final Gradient Boosting model was able to predict player market value
-    with a test R² of approximately 0.62, showing that player performance
-    statistics can explain a meaningful portion of market value differences.
+    The model explains approximately 63% of the variation in player market value based on performance statistics alone.
+    This means that player performance is a strong factor in market value, but not the only one.
+    Factors outside of this dataset, such as club reputation, contract situation, and transfer market conditions,   also influence market value but are not captured by this model.
 
     ### Main Factors Influencing Value
 
-    Offensive contribution was the strongest predictor of market value,
-    followed by creativity score and successful passes. These features
-    represent important aspects of attacking impact and overall player
-    performance.
-
+    Offensive contribution was the strongest predictor of market value,followed by creativity score and successful passes.
+    Players who create and finish attacking chances tend to be valued highest by the model, which is consistent with how transfer markets generally value attacking talent.
+    
     ### Identifying Potential Opportunities
 
-    Comparing predicted market values with current market values allows the
-    model to highlight players where the estimated value is higher than their
-    current valuation.
+    Comparing the model's predicted market values against each player's current market value identifies players who may be undervalued.
+    These are cases where their perforance suggests a higher value than the market currently reflects, making them worth a closer scouting look.
     """
 )
 st.write("")
@@ -88,7 +109,7 @@ st.markdown(
     Explore how different player characteristics influence estimated market value. 
     Adjust key performance statistics to generated a model-based valuation for different player profiles.
 
-    Additional statistics are avaliable through the **Advanced Player Statistics** section for users who want to explore more detailed statistics.
+    Additional statistics are available under **Advanced Player Statistics** for a mroe detailed estimate.
     """
 )
 st.write("")
@@ -209,6 +230,11 @@ with tab1:
             "value_difference": "Value Gap (€M)"
         }
     )
+
+    st.write("")
+    chart_data = display_df.set_index("player_name")["Value Gap (€M)"].sort_values()
+    st.bar_chart(chart_data, horizontal=True)
+    st.caption("Players are ranked by estimated value gap. A larger bar indicates a greater difference between estimated and current market value.")
 
     st.dataframe(display_df)
 
