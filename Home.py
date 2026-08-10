@@ -17,9 +17,7 @@ model = load_model()
 df = load_data()
 
 # Sidebar
-
 st.sidebar.title("Navigation")
-
 page = st.sidebar.radio(
     "Go to",
     [
@@ -28,19 +26,14 @@ page = st.sidebar.radio(
         "Player Value Estimator",
     ],
 )
-
 st.sidebar.divider()
-
 st.sidebar.markdown("### Disclaimer")
-
 st.sidebar.caption("Model predictions are estimates based on the provided dataset and selected player characteristics.")
 
 # Overview and Insights
 if page == "Overview & Insights":
     st.title("Football Player Market Value Insights")
-    st.write(
-        "This application uses a machine learning model to estimate football player market values and identify players whose current market values may differ from their predicted values."
-    )
+    st.write("This application uses a machine learning model to estimate football player market values and identify players whose current market values may differ from their predicted values.")
 
     col1, col2 = st.columns(2)
     col1.metric("Players Analyzed", f"{len(df):,}")
@@ -62,27 +55,19 @@ if page == "Overview & Insights":
     )
 
     st.header("What Matters Most to the Model")
-    st.write(
-    "This chart shows which player statistics have the greatest influence on the model's market value estimates. " \
-    "Higher-ranked statistics have a stronger influence on the model's valuation."
-    )
-    importance_df = (
-        pd.DataFrame({
-                "feature": model.feature_names_in_,
-                "importance": model.feature_importances_,
-        })
-        .sort_values("importance", ascending=False)
-        .head(10)
-    )
+    st.write("This chart shows which player statistics have the greatest influence on the model's market value estimates. " \
+    "Higher-ranked statistics have a stronger influence on the model's valuation.")
+
+    importance_df = (pd.DataFrame({"feature": model.feature_names_in_, "importance": model.feature_importances_,}).sort_values("importance", ascending=False).head(10))
 
     importance_df["feature"] = (importance_df["feature"].str.replace("_", " ").str.title())
     st.bar_chart(importance_df.set_index("feature"))
 
-# Undervalued Players
+# Potentially Undervalued Players
 elif page == "Potentially Undervalued Players":
     st.title("Potentially Undervalued Players")
     st.write("Explore players whose model-predicted market values are higher than their current market valuations. " \
-    "   The value gap shows the difference between the model's estimated value and the player's current market value, with larger gaps highlighting potential scouting opportunities.")
+    "The value gap shows the difference between the model's estimated value and the player's current market value, with larger gaps highlighting potential scouting opportunities.")
 
     features = [
         "age",
@@ -135,18 +120,13 @@ elif page == "Potentially Undervalued Players":
         ]
 
     display_df = (
-        filtered_players[
-            [
-                "player_name",
-                "position",
-                "market_value_eur",
-                "predicted_market_value",
-                "value_difference",
-            ]
-        ]
-        .head(top_n)
-        .copy()
-    )
+        filtered_players[[
+            "player_name",
+            "position",
+            "market_value_eur",
+            "predicted_market_value",
+            "value_difference",
+        ]].head(top_n).copy())
 
     for col in [
         "market_value_eur",
@@ -163,9 +143,7 @@ elif page == "Potentially Undervalued Players":
         }
     )
 
-    table_tab, chart_tab = st.tabs(
-        ["Player Details", "Value Gap Chart"]
-    )
+    table_tab, chart_tab = st.tabs(["Player Details", "Value Gap Chart"])
 
     with table_tab:
         st.dataframe(
@@ -190,7 +168,6 @@ elif page == "Potentially Undervalued Players":
             "A larger bar indicates a greater difference between estimated "
             "and current market value."
         )
-
 
 # Player Value Esitmator
 elif page == "Player Value Estimator":
